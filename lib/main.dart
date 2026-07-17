@@ -6,6 +6,29 @@ import 'package:frontend/module3/marketplace/bloc/marketplace_bloc.dart';
 import 'package:frontend/module3/bookings/bloc/bookings_bloc.dart';
 import 'package:frontend/module3/chat/bloc/chat_bloc.dart';
 
+import 'package:frontend/module1/wallet/wallet_balance_screen.dart';
+import 'package:frontend/module1/wallet/escrow_deposit_screen.dart';
+import 'package:frontend/module1/wallet/reputation_score_screen.dart';
+import 'package:frontend/module1/wallet/governance_vote_screen.dart';
+import 'package:frontend/module2/inspection/admin_inspection_dashboard.dart';
+import 'package:frontend/module2/inspection/change_detection_view.dart';
+import 'package:frontend/module2/inspection/damage_severity_report.dart';
+import 'package:frontend/module3/auth/presentation/login_screen.dart';
+import 'package:frontend/module3/auth/presentation/register_screen.dart';
+import 'package:frontend/module3/auth/presentation/forgot_password_screen.dart';
+import 'package:frontend/module3/auth/presentation/student_profile_screen.dart';
+import 'package:frontend/module3/marketplace/presentation/marketplace_home_screen.dart';
+import 'package:frontend/module3/marketplace/presentation/search_filter_screen.dart';
+import 'package:frontend/module3/marketplace/presentation/admin_asset_management_screen.dart';
+import 'package:frontend/module3/bookings/presentation/calendar_booking_screen.dart';
+import 'package:frontend/module3/bookings/presentation/my_bookings_screen.dart';
+import 'package:frontend/module3/bookings/presentation/dynamic_qr_key_screen.dart';
+import 'package:frontend/module3/bookings/presentation/asset_return_screen.dart';
+import 'package:frontend/module3/bookings/presentation/booking_confirmation_screen.dart';
+import 'package:frontend/module3/chat/presentation/rag_troubleshoot_chat_screen.dart';
+import 'package:frontend/module3/chat/presentation/chat_history_screen.dart';
+import 'package:frontend/module3/core/presentation/notification_hub_screen.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -35,7 +58,31 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.system,
-        home: const PlaceholderHomeScreen(),
+        initialRoute: '/login',
+        routes: {
+          '/login': (context) => const LoginScreen(),
+          '/register': (context) => const RegisterScreen(),
+          '/forgot-password': (context) => const ForgotPasswordScreen(),
+          '/marketplace': (context) => const MarketplaceHomeScreen(),
+          '/search-filter': (context) => const SearchFilterScreen(),
+          '/admin-asset-management': (context) => const AdminAssetManagementScreen(),
+          '/calendar-booking': (context) => const CalendarBookingScreen(),
+          '/my-bookings': (context) => const MyBookingsScreen(),
+          '/dynamic-qr-key': (context) => const DynamicQrKeyScreen(),
+          '/asset-return': (context) => const AssetReturnScreen(),
+          '/booking-confirmation': (context) => const BookingConfirmationScreen(),
+          '/rag-troubleshoot-chat': (context) => const RagTroubleshootChatScreen(),
+          '/chat-history': (context) => const ChatHistoryScreen(),
+          '/student-profile': (context) => const StudentProfileScreen(),
+          '/notification-hub': (context) => const NotificationHubScreen(),
+          '/wallet-balance': (context) => const WalletBalanceScreen(),
+          '/escrow-deposit': (context) => const EscrowDepositScreen(),
+          '/reputation-score': (context) => const ReputationScoreScreen(),
+          '/governance-vote': (context) => const GovernanceVoteScreen(),
+          '/admin-inspection-dashboard': (context) => const AdminInspectionDashboard(),
+          '/change-detection': (context) => const ChangeDetectionView(),
+          '/damage-severity-report': (context) => const DamageSeverityReport(),
+        },
       ),
     );
   }

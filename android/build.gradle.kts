@@ -16,6 +16,19 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+subprojects {
+    plugins.withId("com.android.application") {
+        configure<com.android.build.gradle.BaseExtension> {
+            ndkVersion = "26.3.11579264"
+        }
+    }
+    plugins.withId("com.android.library") {
+        configure<com.android.build.gradle.BaseExtension> {
+            ndkVersion = "26.3.11579264"
+        }
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
