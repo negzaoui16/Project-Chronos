@@ -610,66 +610,68 @@ class _RagTroubleshootChatScreenState extends State<RagTroubleshootChatScreen>
 
   Widget _buildEmptyState() {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF8083FF), Color(0xFF5B5FFF)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: _violet.withValues(alpha: 0.3),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF8083FF), Color(0xFF5B5FFF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: _violet.withValues(alpha: 0.3),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 36),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'AI Troubleshooting Assistant',
+                style: TextStyle(
+                  fontFamily: 'Geist',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: _textDark,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Ask me anything about your academic equipment.\nI can help with setup, errors, and diagnostics.',
+                style: TextStyle(
+                  fontFamily: 'Geist',
+                  fontSize: 13,
+                  color: _textMuted,
+                  height: 1.6,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              // Suggestion chips
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [
+                  _buildSuggestion('🔌 Quest 3 setup'),
+                  _buildSuggestion('🖨️ Printer error'),
+                  _buildSuggestion('💻 BSOD fix'),
+                  _buildSuggestion('📡 Network issue'),
                 ],
               ),
-              child: const Icon(Icons.auto_awesome, color: Colors.white, size: 36),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'AI Troubleshooting Assistant',
-              style: TextStyle(
-                fontFamily: 'Geist',
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: _textDark,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Ask me anything about your academic equipment.\nI can help with setup, errors, and diagnostics.',
-              style: TextStyle(
-                fontFamily: 'Geist',
-                fontSize: 13,
-                color: _textMuted,
-                height: 1.6,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            // Suggestion chips
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: [
-                _buildSuggestion('🔌 Quest 3 setup'),
-                _buildSuggestion('🖨️ Printer error'),
-                _buildSuggestion('💻 BSOD fix'),
-                _buildSuggestion('📡 Network issue'),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
