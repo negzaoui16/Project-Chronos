@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/theme/app_theme.dart';
 import 'package:frontend/module3/auth/bloc/auth_bloc.dart';
+import 'package:frontend/module3/auth/bloc/auth_event.dart';
+import 'package:frontend/module3/auth/bloc/auth_state.dart';
 import 'package:frontend/module3/marketplace/bloc/marketplace_bloc.dart';
 import 'package:frontend/module3/bookings/bloc/bookings_bloc.dart';
 import 'package:frontend/module3/chat/bloc/chat_bloc.dart';
@@ -41,7 +43,7 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>(
-          create: (context) => AuthBloc(),
+          create: (context) => AuthBloc()..add(CheckAuthRequested()),
         ),
         BlocProvider<MarketplaceBloc>(
           create: (context) => MarketplaceBloc(),
@@ -58,7 +60,21 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.system,
-        initialRoute: '/login',
+        home: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            if (state is AuthLoading) {
+              return const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(color: Color(0xFF8083FF)),
+                ),
+              );
+            }
+            if (state is AuthAuthenticated) {
+              return const MarketplaceHomeScreen();
+            }
+            return const LoginScreen();
+          },
+        ),
         routes: {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
