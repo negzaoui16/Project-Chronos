@@ -78,17 +78,30 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                         builder: (context, authState) {
                           final isAdmin = authState is AuthAuthenticated && authState.user['role'] == 'ADMIN';
                           if (isAdmin) {
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: IconButton(
-                                icon: const Icon(Icons.add_circle_outline, color: Color(0xFFC0C1FF), size: 26),
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => const AdminAssetManagementScreen()),
-                                  );
-                                },
-                              ),
+                            return Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.add_circle_outline, color: Color(0xFFC0C1FF), size: 26),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (context) => const AdminAssetManagementScreen()),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.admin_panel_settings, color: Color(0xFFC0C1FF), size: 26),
+                                    onPressed: () {
+                                      Navigator.pushNamed(context, '/admin-inspection-dashboard');
+                                    },
+                                  ),
+                                ),
+                              ],
                             );
                           }
                           return const SizedBox.shrink();

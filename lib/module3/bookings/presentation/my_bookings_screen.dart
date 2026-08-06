@@ -17,15 +17,31 @@ class MyBookingsScreen extends StatefulWidget {
 
 class _MyBookingsScreenState extends State<MyBookingsScreen> {
   int _activeTab = 0; // 0: Active, 1: Pending, 2: History
+  late BookingsBloc _bookingsBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _bookingsBloc = BookingsBloc();
+    _fetchData();
+  }
+
+  void _fetchData() {
+    final authState = context.read<AuthBloc>().state;
+    final token = authState is AuthAuthenticated ? authState.token : '';
+    _bookingsBloc.add(FetchMyBookingsEvent(token));
+  }
+
+  @override
+  void dispose() {
+    _bookingsBloc.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) {
-        final authState = context.read<AuthBloc>().state;
-        final token = authState is AuthAuthenticated ? authState.token : '';
-        return BookingsBloc()..add(FetchMyBookingsEvent(token));
-      },
+    return BlocProvider.value(
+      value: _bookingsBloc,
       child: BlocConsumer<BookingsBloc, BookingsState>(
         listener: (context, state) {
           if (state is BookingCancelledSuccess) {
@@ -83,9 +99,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                     backgroundColor: const Color(0xFF0B1326),
                     strokeWidth: 2.5,
                     onRefresh: () async {
-                      final authState = context.read<AuthBloc>().state;
-                      final token = authState is AuthAuthenticated ? authState.token : '';
-                      context.read<BookingsBloc>().add(FetchMyBookingsEvent(token));
+                      _fetchData();
                     },
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
@@ -224,9 +238,8 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                                 MaterialPageRoute(builder: (context) => AssetReturnScreen(bookingId: bk['id'])),
                               );
                               if (!mounted) return;
-                              final authState = context.read<AuthBloc>().state;
-                              final token = authState is AuthAuthenticated ? authState.token : '';
-                              context.read<BookingsBloc>().add(FetchMyBookingsEvent(token));
+                              await Future.delayed(const Duration(milliseconds: 200)); // Ensure backend has fully committed the change
+                              _fetchData();
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: const Color(0xFF8083FF),

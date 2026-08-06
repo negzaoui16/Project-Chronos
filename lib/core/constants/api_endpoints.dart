@@ -4,10 +4,10 @@ class ApiEndpoints {
   // - Pour Appareil Réel (Téléphone connecté au même Wi-Fi) : Utiliser l'IP de votre PC (ex: 'http://192.168.1.50:3000')
   // - Pour iOS / Desktop / Web : Utiliser 'http://localhost:3000'
   
-  static const String baseUrl = 'http://10.0.2.2'
-      ':3000'; // Émulateur Android local (par défaut)
+  //static const String baseUrl = 'http://10.0.2.2'
+      //':3000'; // Émulateur Android local (par défaut)
   // static const String baseUrl = 'http://localhost:3000'; // iOS / Windows Desktop / Web
-  //static const String baseUrl = 'http://172.20.10.3:3000'; // Remplacer par l'IP locale de votre PC pour test Wi-Fi réel
+  static const String baseUrl = 'http://172.20.10.3:3000'; // Remplacer par l'IP locale de votre PC pour test Wi-Fi réel
   
   // Auth
   static const String login = '/auth/login';

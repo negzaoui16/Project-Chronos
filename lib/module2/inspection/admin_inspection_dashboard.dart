@@ -1,38 +1,127 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'dart:async';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/module3/auth/bloc/auth_bloc.dart';
+import 'package:frontend/module3/auth/bloc/auth_state.dart';
 import 'package:frontend/module2/inspection/change_detection_view.dart';
 
-class AdminInspectionDashboard extends StatelessWidget {
+class AdminInspectionDashboard extends StatefulWidget {
   const AdminInspectionDashboard({super.key});
 
-  final List<Map<String, dynamic>> _inspections = const [
-    {
-      'id': 'INSP-902',
-      'asset': 'Formlabs 3B+',
-      'user': 'Dr. Julian Vane',
-      'status': 'Flagged',
-      'statusColor': Color(0xFFEF4444),
-      'findings': 'Visual components show hairline structural fracture in resin tank.',
-      'time': '10 mins ago',
-    },
-    {
-      'id': 'INSP-898',
-      'asset': 'Meta Quest Pro Kit',
-      'user': 'Prof. Evelyn Hill',
-      'status': 'Approved',
-      'statusColor': Color(0xFF22C55E),
-      'findings': 'Lens tracking and facial sensors passed quality diagnostics.',
-      'time': '1 hour ago',
-    },
-    {
-      'id': 'INSP-895',
-      'asset': 'High-Perf Workstation',
-      'user': 'Lucas Miller',
-      'status': 'Under Review',
-      'statusColor': Color(0xFFF59E0B),
-      'findings': 'GPU temperature thresholds recorded slightly above nominal limits.',
-      'time': '3 hours ago',
-    },
-  ];
+  @override
+  State<AdminInspectionDashboard> createState() => _AdminInspectionDashboardState();
+}
+
+class _AdminInspectionDashboardState extends State<AdminInspectionDashboard> {
+  final ApiClient _apiClient = ApiClient();
+  bool _isLoading = true;
+  List<dynamic> _activeBookings = [];
+  bool _isSubmitting = false;
+  Timer? _adminPollingTimer;
+  int _totalRuns = 0;
+  int _flaggedCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchActiveBookings();
+    _adminPollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) _fetchActiveBookings(silent: true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _adminPollingTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchActiveBookings({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+    try {
+      final authState = context.read<AuthBloc>().state;
+      String token = '';
+      if (authState is AuthAuthenticated) token = authState.token;
+
+      final response = await _apiClient.dio.get(
+        '/bookings',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      final List<dynamic> allBookings = response.data;
+      setState(() {
+        _activeBookings = allBookings.where((b) => b['status'] == 'PENDING_RETURN').toList();
+        _totalRuns = allBookings.length;
+        _flaggedCount = allBookings.where((b) => b['inspection'] != null && b['inspection']['status'] == 'FLAGGED').length;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur de chargement des réservations.'), backgroundColor: Colors.redAccent),
+        );
+      }
+    }
+  }
+
+  Future<void> _approveReturn(String bookingId) async {
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      final authState = context.read<AuthBloc>().state;
+      String token = '';
+      if (authState is AuthAuthenticated) token = authState.token;
+
+      await _apiClient.dio.post(
+        '/bookings/$bookingId/return',
+        data: {
+          "damageCategory": "OTHER_UNCLASSIFIED",
+          "damageSeverity": "COSMETIC",
+          "aiDescription": "Admin manually approved the return.",
+          "estimatedRepairCost": 0.0,
+          "recommendedAction": "NONE",
+          "status": "PASSED"
+        },
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Retour validé avec succès !'),
+            backgroundColor: Color(0xFF22C55E),
+          ),
+        );
+        _fetchActiveBookings(); // Refresh the list
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erreur lors de la validation du retour.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,20 +145,25 @@ class AdminInspectionDashboard extends StatelessWidget {
         ),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
+      body: RefreshIndicator(
+        onRefresh: _fetchActiveBookings,
+        color: const Color(0xFF8083FF),
+        backgroundColor: const Color(0xFF0B1326),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Quick Statistics Header
             Row(
               children: [
                 Expanded(
-                  child: _buildStatCard('Total Runs', '1,480', const Color(0xFF8083FF)),
+                  child: _buildStatCard('Total Runs', '$_totalRuns', const Color(0xFF8083FF)),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _buildStatCard('Flagged', '12', const Color(0xFFEF4444)),
+                  child: _buildStatCard('Flagged', '$_flaggedCount', const Color(0xFFEF4444)),
                 ),
               ],
             ),
@@ -88,126 +182,151 @@ class AdminInspectionDashboard extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Inspection List
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _inspections.length,
-              itemBuilder: (context, index) {
-                final insp = _inspections[index];
+            if (_isLoading)
+              const Center(child: CircularProgressIndicator(color: Color(0xFF8083FF)))
+            else if (_activeBookings.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 24.0),
+                  child: Text('Aucune réservation en attente de retour.', style: TextStyle(color: Colors.grey, fontFamily: 'Geist', fontSize: 14)),
+                ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _activeBookings.length,
+                itemBuilder: (context, index) {
+                  final booking = _activeBookings[index];
+                  final bookingId = booking['id'] ?? 'N/A';
+                  final assetName = booking['asset']?['name'] ?? 'Équipement inconnu';
+                  final userName = booking['user']?['name'] ?? 'Étudiant inconnu';
+                  final bookingDate = booking['startTime'] != null 
+                      ? DateTime.parse(booking['startTime']).toLocal().toString().split(' ')[0] 
+                      : 'Date inconnue';
 
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ChangeDetectionView()),
-                    );
-                  },
-                  child: Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFF1F5F9)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                insp['id'],
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFF1F5F9)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    bookingId.toString().length > 8 ? bookingId.toString().substring(0, 8) + '...' : bookingId,
+                                    style: const TextStyle(
+                                      fontFamily: 'Geist',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF94A3B8),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    assetName,
+                                    style: const TextStyle(
+                                      fontFamily: 'Geist',
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE0E7FF),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                'PENDING RETURN',
+                                style: TextStyle(
+                                  fontFamily: 'Geist',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFD97706),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        const Divider(color: Color(0xFFF1F5F9), height: 1),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Étudiant : $userName',
                                 style: const TextStyle(
                                   fontFamily: 'Geist',
                                   fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF94A3B8),
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF64748B),
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                insp['asset'],
-                                style: const TextStyle(
-                                  fontFamily: 'Geist',
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: insp['statusColor'].withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text(
-                              insp['status'],
-                              style: TextStyle(
+                            Text(
+                              bookingDate,
+                              style: const TextStyle(
                                 fontFamily: 'Geist',
                                 fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: insp['statusColor'],
+                                color: Color(0xFF94A3B8),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        insp['findings'],
-                        style: const TextStyle(
-                          fontFamily: 'Geist',
-                          fontSize: 13,
-                          color: Color(0xFF64748B),
-                          height: 1.4,
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                      const Divider(color: Color(0xFFF1F5F9), height: 1),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Researcher: ${insp['user']}',
-                            style: const TextStyle(
-                              fontFamily: 'Geist',
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF94A3B8),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: _isSubmitting ? null : () => _approveReturn(bookingId),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF22C55E),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          Text(
-                            insp['time'],
-                            style: const TextStyle(
-                              fontFamily: 'Geist',
-                              fontSize: 11,
-                              color: Color(0xFF94A3B8),
-                            ),
+                          icon: const Icon(Icons.check_circle_outline, size: 18),
+                          label: const Text(
+                            'Accepter le Retour',
+                            style: TextStyle(fontFamily: 'Geist', fontWeight: FontWeight.bold, fontSize: 13),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  ),
-                );
-              },
-            ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
           ],
         ),
+      ),
       ),
     );
   }

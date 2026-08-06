@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/module3/auth/bloc/auth_bloc.dart';
 import 'package:frontend/module3/auth/bloc/auth_state.dart';
@@ -15,12 +16,44 @@ class AssetReturnScreen extends StatefulWidget {
 
 class _AssetReturnScreenState extends State<AssetReturnScreen> {
   bool _isCapturing = false;
+  bool _isAiInspectionPassed = false;
+  bool _isWaitingForAdmin = false;
+  bool _isAdminValidated = false;
+  Timer? _pollingTimer;
 
   final ApiClient _apiClient = ApiClient();
 
-  Future<void> _onCaptureScan() async {
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _onSimulateAiInspection() async {
     setState(() {
       _isCapturing = true;
+    });
+
+    // Simulate AI loading delay (bypassing the incomplete Python module)
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (mounted) {
+      setState(() {
+        _isCapturing = false;
+        _isAiInspectionPassed = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Inspection IA réussie : Équipement en parfait état.'),
+          backgroundColor: Color(0xFF22C55E),
+        ),
+      );
+    }
+  }
+
+  Future<void> _startPollingForApproval() async {
+    setState(() {
+      _isWaitingForAdmin = true;
     });
 
     try {
@@ -29,48 +62,60 @@ class _AssetReturnScreenState extends State<AssetReturnScreen> {
       if (authState is AuthAuthenticated) token = authState.token;
 
       await _apiClient.dio.post(
-        '/bookings/${widget.bookingId}/return',
-        data: {
-          "damageCategory": "OTHER_UNCLASSIFIED",
-          "damageSeverity": "COSMETIC",
-          "aiDescription": "Mock AI Inspection passed.",
-          "estimatedRepairCost": 0.0,
-          "recommendedAction": "NONE",
-          "status": "PASSED"
-        },
+        '/bookings/${widget.bookingId}/request-return',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
-
-      if (mounted) {
-        setState(() { _isCapturing = false; });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Return verified. 20 CHRONOS refunded to your wallet.'),
-            backgroundColor: Color(0xFF22C55E),
-          ),
-        );
-        Navigator.pop(context); // Go back to bookings list
-      }
     } catch (e) {
       if (mounted) {
-        setState(() { _isCapturing = false; });
-        String errMsg = 'Error during return inspection.';
-        if (e is DioException && e.response?.data?['message'] != null) {
-          final msgData = e.response!.data['message'];
-          if (msgData is List) {
-            errMsg = msgData.join(', ');
-          } else {
-            errMsg = msgData.toString();
-          }
-        }
+        setState(() {
+          _isWaitingForAdmin = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errMsg),
+          const SnackBar(
+            content: Text('Erreur lors de la demande au serveur.'),
             backgroundColor: Colors.redAccent,
           ),
         );
       }
+      return;
     }
+
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      try {
+        final authState = context.read<AuthBloc>().state;
+        String token = '';
+        if (authState is AuthAuthenticated) token = authState.token;
+
+        final response = await _apiClient.dio.get(
+          '/bookings/${widget.bookingId}',
+          options: Options(headers: {'Authorization': 'Bearer $token'}),
+        );
+
+        final status = response.data['status'];
+        if (status == 'PASSED' || status == 'COMPLETED' || status == 'COMPLETED_PASSED') {
+          timer.cancel();
+          if (mounted) {
+            setState(() {
+              _isWaitingForAdmin = false;
+              _isAdminValidated = true;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('🎉 Succès : Retour validé par l\'Administrateur ! 20 CHRONOS remboursés.'),
+                backgroundColor: Color(0xFF22C55E),
+              ),
+            );
+            Navigator.pop(context);
+          }
+        }
+      } catch (e) {
+        // Silently ignore polling errors
+      }
+    });
   }
 
   @override
@@ -199,26 +244,63 @@ class _AssetReturnScreenState extends State<AssetReturnScreen> {
             const SizedBox(height: 36),
 
             // Capture Trigger
-            ElevatedButton(
-              onPressed: _isCapturing ? null : _onCaptureScan,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8083FF),
-                foregroundColor: const Color(0xFF0D0096),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            if (!_isAiInspectionPassed)
+              ElevatedButton(
+                onPressed: _isCapturing ? null : _onSimulateAiInspection,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8083FF),
+                  foregroundColor: const Color(0xFF0D0096),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-              ),
-              child: const Text(
-                'Capture & Initiate Quality Check',
-                style: TextStyle(
-                  fontFamily: 'Geist',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                child: const Text(
+                  'Étape 1 : Scanner l\'équipement (IA)',
+                  style: TextStyle(
+                    fontFamily: 'Geist',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
+              )
+            else if (!_isWaitingForAdmin)
+              ElevatedButton(
+                onPressed: _startPollingForApproval,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF22C55E), // Green to indicate success of step 1
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Étape 2 : Demander l\'approbation Admin',
+                  style: TextStyle(
+                    fontFamily: 'Geist',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              )
+            else
+              Column(
+                children: const [
+                  CircularProgressIndicator(color: Color(0xFF8083FF)),
+                  SizedBox(height: 16),
+                  Text(
+                    'En attente de l\'Administrateur...',
+                    style: TextStyle(
+                      fontFamily: 'Geist',
+                      fontSize: 14,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
               ),
-            ),
           ],
         ),
       ),

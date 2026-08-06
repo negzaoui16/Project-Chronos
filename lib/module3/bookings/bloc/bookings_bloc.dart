@@ -17,9 +17,9 @@ class BookingsBloc extends Bloc<BookingsEvent, BookingsState> {
         );
         final List<dynamic> allBookings = response.data;
         
-        final activeBookings = allBookings.where((b) => b['status'] == 'ACTIVE').toList();
+        final activeBookings = allBookings.where((b) => b['status'] == 'ACTIVE' || b['status'] == 'PENDING_RETURN').toList();
         final pendingBookings = allBookings.where((b) => b['status'] == 'PENDING').toList();
-        final historyBookings = allBookings.where((b) => b['status'] != 'ACTIVE' && b['status'] != 'PENDING').toList();
+        final historyBookings = allBookings.where((b) => b['status'] != 'ACTIVE' && b['status'] != 'PENDING_RETURN' && b['status'] != 'PENDING').toList();
         
         emit(BookingsLoaded(
           activeBookings: activeBookings,
