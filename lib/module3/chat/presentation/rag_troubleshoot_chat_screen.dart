@@ -59,11 +59,32 @@ class _RagTroubleshootChatScreenState extends State<RagTroubleshootChatScreen>
     if (authState is AuthAuthenticated) {
       _userId = authState.user['id'] ?? '';
       _token = authState.token;
-      _currentSessionId = '${_userId}_general';
       _fetchUserBookings();
-      context.read<ChatBloc>().add(LoadChatHistoryEvent(_currentSessionId));
+      _initializeSession();
     } else {
       _currentSessionId = 'general_fallback';
+      context.read<ChatBloc>().add(LoadChatHistoryEvent(_currentSessionId));
+    }
+  }
+
+  Future<void> _initializeSession() async {
+    try {
+      final response = await _apiClient.dio.get('/chat/sessions/$_userId');
+      final List<dynamic> sessions = response.data;
+      if (sessions.isNotEmpty) {
+        sessions.sort((a, b) {
+          final timeA = DateTime.tryParse(a['rawDate'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final timeB = DateTime.tryParse(b['rawDate'] ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+          return timeB.compareTo(timeA); // Descending order
+        });
+        _currentSessionId = sessions.first['id'];
+      } else {
+        _currentSessionId = '${_userId}_general';
+      }
+    } catch (e) {
+      _currentSessionId = '${_userId}_general';
+    }
+    if (mounted) {
       context.read<ChatBloc>().add(LoadChatHistoryEvent(_currentSessionId));
     }
   }

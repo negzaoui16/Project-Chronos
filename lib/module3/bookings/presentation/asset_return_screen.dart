@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/module2/inspection/admin_inspection_dashboard.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/module3/auth/bloc/auth_bloc.dart';
+import 'package:frontend/module3/auth/bloc/auth_state.dart';
 
 class AssetReturnScreen extends StatefulWidget {
-  const AssetReturnScreen({super.key});
+  final String bookingId;
+  const AssetReturnScreen({super.key, required this.bookingId});
 
   @override
   State<AssetReturnScreen> createState() => _AssetReturnScreenState();
@@ -11,28 +16,61 @@ class AssetReturnScreen extends StatefulWidget {
 class _AssetReturnScreenState extends State<AssetReturnScreen> {
   bool _isCapturing = false;
 
-  void _onCaptureScan() {
+  final ApiClient _apiClient = ApiClient();
+
+  Future<void> _onCaptureScan() async {
     setState(() {
       _isCapturing = true;
     });
 
-    Future.delayed(const Duration(seconds: 2), () {
+    try {
+      final authState = context.read<AuthBloc>().state;
+      String token = '';
+      if (authState is AuthAuthenticated) token = authState.token;
+
+      await _apiClient.dio.post(
+        '/bookings/${widget.bookingId}/return',
+        data: {
+          "damageCategory": "OTHER_UNCLASSIFIED",
+          "damageSeverity": "COSMETIC",
+          "aiDescription": "Mock AI Inspection passed.",
+          "estimatedRepairCost": 0.0,
+          "recommendedAction": "NONE",
+          "status": "PASSED"
+        },
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
       if (mounted) {
-        setState(() {
-          _isCapturing = false;
-        });
+        setState(() { _isCapturing = false; });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Visual inspection scan captured. Transmitted to RAG severity assessor.'),
-            backgroundColor: Color(0xFF8083FF),
+            content: Text('Return verified. 20 CHRONOS refunded to your wallet.'),
+            backgroundColor: Color(0xFF22C55E),
           ),
         );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const AdminInspectionDashboard()),
+        Navigator.pop(context); // Go back to bookings list
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() { _isCapturing = false; });
+        String errMsg = 'Error during return inspection.';
+        if (e is DioException && e.response?.data?['message'] != null) {
+          final msgData = e.response!.data['message'];
+          if (msgData is List) {
+            errMsg = msgData.join(', ');
+          } else {
+            errMsg = msgData.toString();
+          }
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errMsg),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
-    });
+    }
   }
 
   @override

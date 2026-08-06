@@ -30,6 +30,7 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
             status: displayStatus,
             availabilityText: availText,
             category: json['category'] ?? 'Hardware',
+            maxReservationDays: json['maxReservationDays'] ?? 3,
           );
         }).toList();
 
@@ -56,12 +57,14 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
           formData = FormData.fromMap({
             'name': event.name,
             'category': event.category,
+            'maxReservationDays': event.maxReservationDays,
             'image': imageFile,
           });
         } else {
           formData = FormData.fromMap({
             'name': event.name,
             'category': event.category,
+            'maxReservationDays': event.maxReservationDays,
           });
         }
 
@@ -83,6 +86,51 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
         emit(MarketplaceError(message: msg));
       } catch (_) {
         emit(MarketplaceError(message: 'Unexpected error creating asset.'));
+      }
+    });
+
+    on<UpdateAssetEvent>((event, emit) async {
+      emit(MarketplaceLoading());
+      try {
+        await _apiClient.dio.put(
+          '${ApiEndpoints.assets}/${event.id}',
+          data: {
+            'name': event.name,
+            'category': event.category,
+            'maxReservationDays': event.maxReservationDays,
+          },
+          options: Options(
+            headers: {
+              'Authorization': 'Bearer ${event.token}',
+            },
+          ),
+        );
+        add(FetchMarketplaceAssetsEvent());
+      } on DioException catch (e) {
+        final msg = e.response?.data?['message'] ?? 'Failed to update asset.';
+        emit(MarketplaceError(message: msg));
+      } catch (_) {
+        emit(MarketplaceError(message: 'Unexpected error updating asset.'));
+      }
+    });
+
+    on<DeleteAssetEvent>((event, emit) async {
+      emit(MarketplaceLoading());
+      try {
+        await _apiClient.dio.delete(
+          '${ApiEndpoints.assets}/${event.id}',
+          options: Options(
+            headers: {
+              'Authorization': 'Bearer ${event.token}',
+            },
+          ),
+        );
+        add(FetchMarketplaceAssetsEvent());
+      } on DioException catch (e) {
+        final msg = e.response?.data?['message'] ?? 'Failed to delete asset.';
+        emit(MarketplaceError(message: msg));
+      } catch (_) {
+        emit(MarketplaceError(message: 'Unexpected error deleting asset.'));
       }
     });
   }

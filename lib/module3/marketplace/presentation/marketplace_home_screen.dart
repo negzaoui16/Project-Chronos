@@ -566,9 +566,14 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                             const SizedBox(height: 20),
                             ElevatedButton(
                               onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => const AdminAssetManagementScreen()),
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Feature coming soon: Resource requests will be available in the next update.',
+                                      style: TextStyle(fontFamily: 'Geist'),
+                                    ),
+                                    backgroundColor: Color(0xFF0B1326),
+                                  ),
                                 );
                               },
                               style: ElevatedButton.styleFrom(

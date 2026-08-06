@@ -25,8 +25,6 @@ import 'package:frontend/module3/marketplace/presentation/admin_asset_management
 import 'package:frontend/module3/bookings/presentation/calendar_booking_screen.dart';
 import 'package:frontend/module3/bookings/presentation/my_bookings_screen.dart';
 import 'package:frontend/module3/bookings/presentation/dynamic_qr_key_screen.dart';
-import 'package:frontend/module3/bookings/presentation/asset_return_screen.dart';
-import 'package:frontend/module3/bookings/presentation/booking_confirmation_screen.dart';
 import 'package:frontend/module3/chat/presentation/rag_troubleshoot_chat_screen.dart';
 import 'package:frontend/module3/chat/presentation/chat_history_screen.dart';
 import 'package:frontend/module3/core/presentation/notification_hub_screen.dart';
@@ -85,8 +83,6 @@ class MyApp extends StatelessWidget {
           '/calendar-booking': (context) => const CalendarBookingScreen(),
           '/my-bookings': (context) => const MyBookingsScreen(),
           '/dynamic-qr-key': (context) => const DynamicQrKeyScreen(),
-          '/asset-return': (context) => const AssetReturnScreen(),
-          '/booking-confirmation': (context) => const BookingConfirmationScreen(),
           '/rag-troubleshoot-chat': (context) => const RagTroubleshootChatScreen(),
           '/chat-history': (context) => const ChatHistoryScreen(),
           '/student-profile': (context) => const StudentProfileScreen(),

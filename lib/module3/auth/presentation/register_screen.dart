@@ -7,6 +7,7 @@ import 'package:frontend/module3/auth/bloc/auth_state.dart';
 import 'package:frontend/module3/auth/presentation/login_screen.dart';
 import 'package:frontend/module3/marketplace/presentation/marketplace_home_screen.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -50,6 +51,76 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to pick profile image: $e'),
+          backgroundColor: const Color(0xFFEF4444),
+        ),
+      );
+    }
+  }
+
+  Future<void> _scanStudentCard() async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+      );
+      if (pickedFile == null) return;
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Scanning student card...'),
+          backgroundColor: Color(0xFF64748B),
+        ),
+      );
+
+      final inputImage = InputImage.fromFilePath(pickedFile.path);
+      final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+      final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
+      await textRecognizer.close();
+
+      // Esprit ID format: 3 digits + 3 letters + 4 digits (e.g. 243JMT5008)
+      // Fallback: 8 digits
+      final idRegex = RegExp(r'\b(\d{3}[A-Z]{3}\d{4}|\d{8})\b');
+      
+      String? foundId;
+      for (TextBlock block in recognizedText.blocks) {
+        for (TextLine line in block.lines) {
+          final match = idRegex.firstMatch(line.text.toUpperCase().replaceAll(' ', ''));
+          if (match != null) {
+            foundId = match.group(0);
+            break;
+          }
+        }
+        if (foundId != null) break;
+      }
+
+      if (!mounted) return;
+      if (foundId != null) {
+        setState(() {
+          _studentIdController.text = foundId!;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Student ID detected successfully!'),
+            backgroundColor: Color(0xFF22C55E),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not read Student ID from card. Please try again with good lighting.'),
+            backgroundColor: Color(0xFFEF4444),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to scan card: $e'),
           backgroundColor: const Color(0xFFEF4444),
         ),
       );
@@ -363,7 +434,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                           // Student ID
                           const Text(
-                            'Student ID (8-digit)',
+                            'Student ID (Auto-Scan)',
                             style: TextStyle(
                               fontFamily: 'Geist',
                               fontSize: 12,
@@ -375,7 +446,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           const SizedBox(height: 6),
                           TextFormField(
                             controller: _studentIdController,
-                            keyboardType: TextInputType.number,
+                            readOnly: true,
+                            onTap: _scanStudentCard,
                             textInputAction: TextInputAction.next,
                             style: const TextStyle(
                               fontFamily: 'Geist',
@@ -388,7 +460,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 color: Color(0xFF94A3B8), // outline
                                 size: 20,
                               ),
-                              hintText: '88421092',
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.document_scanner_outlined, color: Color(0xFF8083FF)),
+                                onPressed: _scanStudentCard,
+                                tooltip: 'Scan Student Card',
+                              ),
+                              hintText: 'Tap to scan card (e.g. 243JMT5008)',
                               hintStyle: const TextStyle(color: Color(0x80908FA0)),
                               filled: true,
                               fillColor: const Color(0xFFF8FAFC),
@@ -412,11 +489,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
-                                return 'Please enter your Student ID';
+                                return 'Please scan your Student ID card';
                               }
-                              final idRegex = RegExp(r'^\d{8}$');
-                              if (!idRegex.hasMatch(value.trim())) {
-                                return 'Student ID must be exactly 8 digits';
+                              final idRegex = RegExp(r'^(\d{3}[A-Z]{3}\d{4}|\d{8})$');
+                              if (!idRegex.hasMatch(value.trim().toUpperCase())) {
+                                return 'Invalid Student ID format';
                               }
                               return null;
                             },

@@ -1,7 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/module3/marketplace/bloc/marketplace_bloc.dart';
+import 'package:frontend/module3/marketplace/bloc/marketplace_event.dart';
 
 class BookingConfirmationScreen extends StatelessWidget {
-  const BookingConfirmationScreen({super.key});
+  final String assetName;
+  final String timeSlot;
+  final String depositAmount;
+  final String txHash;
+
+  const BookingConfirmationScreen({
+    super.key,
+    required this.assetName,
+    required this.timeSlot,
+    required this.depositAmount,
+    required this.txHash,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +25,10 @@ class BookingConfirmationScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF0B1326),
         leading: IconButton(
           icon: const Icon(Icons.close, color: Color(0xFFC0C1FF)),
-          onPressed: () => Navigator.maybePop(context),
+          onPressed: () {
+            context.read<MarketplaceBloc>().add(FetchMarketplaceAssetsEvent());
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
         ),
         title: const Text(
           'TRANSACTION RECEIPT',
@@ -92,13 +109,15 @@ class BookingConfirmationScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _buildReceiptRow('Instrument', 'Formlabs 3B+'),
+                  _buildReceiptRow('Instrument', assetName),
                   const Divider(color: Color(0xFFE2E8F0)),
-                  _buildReceiptRow('Time Slot', 'July 14, 09:00 - 10:00'),
+                  _buildReceiptRow('Time Slot', timeSlot),
                   const Divider(color: Color(0xFFE2E8F0)),
-                  _buildReceiptRow('Staked Guarantee', '50.0 CHR'),
-                  const Divider(color: Color(0xFFE2E8F0)),
-                  _buildReceiptRow('Transaction Hash', '0x9a2f...1e08'),
+                  _buildReceiptRow('Staked Guarantee', '$depositAmount CHR'),
+                  if (txHash.isNotEmpty) ...[
+                    const Divider(color: Color(0xFFE2E8F0)),
+                    _buildReceiptRow('Transaction Hash', txHash),
+                  ],
                 ],
               ),
             ),
@@ -106,7 +125,10 @@ class BookingConfirmationScreen extends StatelessWidget {
 
             // Back button
             ElevatedButton(
-              onPressed: () => Navigator.maybePop(context),
+              onPressed: () {
+                context.read<MarketplaceBloc>().add(FetchMarketplaceAssetsEvent());
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF8083FF),
                 foregroundColor: const Color(0xFF0D0096),
@@ -145,13 +167,18 @@ class BookingConfirmationScreen extends StatelessWidget {
               color: Color(0xFF64748B),
             ),
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontFamily: 'Geist',
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0B1326),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontFamily: 'Geist',
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0B1326),
+              ),
             ),
           ),
         ],

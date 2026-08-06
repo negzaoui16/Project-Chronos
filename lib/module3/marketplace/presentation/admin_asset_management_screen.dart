@@ -24,9 +24,10 @@ class _AdminAssetManagementScreenState extends State<AdminAssetManagementScreen>
     context.read<MarketplaceBloc>().add(FetchMarketplaceAssetsEvent());
   }
 
-  void _onAddAsset() {
+  void _showAddAssetDialog(BuildContext context) {
     final titleController = TextEditingController();
     final locationController = TextEditingController();
+    final maxDaysController = TextEditingController(text: '3');
     String selectedCategory = 'Hardware';
     String? pickedImagePath;
     final dialogFormKey = GlobalKey<FormState>();
@@ -175,6 +176,37 @@ class _AdminAssetManagementScreenState extends State<AdminAssetManagementScreen>
                         ),
                         validator: (value) => value == null || value.trim().isEmpty ? 'Enter location' : null,
                       ),
+                      const SizedBox(height: 16),
+
+                      // Max Reservation Days
+                      const Text(
+                        'MAX RESERVATION DAYS',
+                        style: TextStyle(fontFamily: 'Geist', fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: maxDaysController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          hintText: 'e.g. 3',
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Color(0xFF8083FF), width: 1.5),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) return 'Enter max days';
+                          if (int.tryParse(value) == null) return 'Must be a number';
+                          return null;
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -202,6 +234,7 @@ class _AdminAssetManagementScreenState extends State<AdminAssetManagementScreen>
                           category: selectedCategory,
                           imagePath: pickedImagePath,
                           token: token,
+                          maxReservationDays: int.tryParse(maxDaysController.text.trim()) ?? 3,
                         ),
                       );
 
@@ -230,6 +263,162 @@ class _AdminAssetManagementScreenState extends State<AdminAssetManagementScreen>
     );
   }
 
+  void _showModifyAssetDialog(BuildContext context, MarketplaceAsset asset) {
+    final titleController = TextEditingController(text: asset.title);
+    final maxDaysController = TextEditingController(text: asset.maxReservationDays.toString());
+    String selectedCategory = asset.category;
+    final dialogFormKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Modify Asset',
+            style: TextStyle(
+              fontFamily: 'Newsreader',
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0B1326),
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Form(
+              key: dialogFormKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Asset Name
+                  const Text('ASSET NAME', style: TextStyle(fontFamily: 'Geist', fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: titleController,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF8083FF), width: 1.5)),
+                    ),
+                    validator: (value) => value == null || value.trim().isEmpty ? 'Enter asset name' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  // Category
+                  const Text('CATEGORY', style: TextStyle(fontFamily: 'Geist', fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: selectedCategory,
+                    items: ['Hardware', 'Labs', 'Space'].map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
+                    onChanged: (value) { if (value != null) selectedCategory = value; },
+                    decoration: InputDecoration(
+                      filled: true, fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Max Reservation Days
+                  const Text('MAX RESERVATION DAYS', style: TextStyle(fontFamily: 'Geist', fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: maxDaysController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      filled: true, fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF8083FF), width: 1.5)),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) return 'Enter max days';
+                      if (int.tryParse(value) == null) return 'Must be a number';
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (dialogFormKey.currentState?.validate() ?? false) {
+                  final authState = context.read<AuthBloc>().state;
+                  if (authState is! AuthAuthenticated) {
+                    Navigator.pop(dialogContext);
+                    return;
+                  }
+                  context.read<MarketplaceBloc>().add(
+                    UpdateAssetEvent(
+                      id: asset.id,
+                      name: titleController.text.trim(),
+                      category: selectedCategory,
+                      token: authState.token,
+                      maxReservationDays: int.tryParse(maxDaysController.text.trim()) ?? 3,
+                    ),
+                  );
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Updating Asset...'), backgroundColor: Color(0xFF8083FF)));
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8083FF),
+                foregroundColor: const Color(0xFF0D0096),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Modify Asset'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _confirmDelete(BuildContext context, MarketplaceAsset asset) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Delete Asset?', style: TextStyle(fontFamily: 'Newsreader', fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF0B1326))),
+          content: Text('Are you sure you want to delete ${asset.title}? This cannot be undone.', style: const TextStyle(fontFamily: 'Geist', fontSize: 14, color: Color(0xFF64748B))),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final authState = context.read<AuthBloc>().state;
+                if (authState is AuthAuthenticated) {
+                  context.read<MarketplaceBloc>().add(DeleteAssetEvent(id: asset.id, token: authState.token));
+                }
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Deleting Asset...'), backgroundColor: Colors.redAccent));
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -253,7 +442,7 @@ class _AdminAssetManagementScreenState extends State<AdminAssetManagementScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: Color(0xFFC0C1FF)),
-            onPressed: _onAddAsset,
+            onPressed: () => _showAddAssetDialog(context),
           ),
         ],
         elevation: 0,
@@ -433,17 +622,26 @@ class _AdminAssetManagementScreenState extends State<AdminAssetManagementScreen>
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
                                 ElevatedButton.icon(
-                                  onPressed: () {},
+                                  onPressed: isAvailable ? () => _showModifyAssetDialog(context, asset) : null,
                                   icon: const Icon(Icons.edit, size: 14),
                                   label: const Text('Modify', style: TextStyle(fontSize: 12)),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF8083FF),
                                     foregroundColor: const Color(0xFF0D0096),
+                                    disabledBackgroundColor: const Color(0xFFE2E8F0),
+                                    disabledForegroundColor: const Color(0xFF94A3B8),
                                     elevation: 0,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  onPressed: isAvailable ? () => _confirmDelete(context, asset) : null,
+                                  icon: const Icon(Icons.delete_outline),
+                                  color: Colors.redAccent,
+                                  disabledColor: const Color(0xFF94A3B8),
                                 ),
                               ],
                             ),

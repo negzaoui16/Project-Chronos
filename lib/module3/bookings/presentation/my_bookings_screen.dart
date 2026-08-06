@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/module3/bookings/bloc/bookings_bloc.dart';
+import 'package:frontend/module3/bookings/bloc/bookings_event.dart';
+import 'package:frontend/module3/bookings/bloc/bookings_state.dart';
 import 'package:frontend/module3/bookings/presentation/asset_return_screen.dart';
 import 'package:frontend/module3/bookings/presentation/dynamic_qr_key_screen.dart';
+import 'package:frontend/module3/auth/bloc/auth_bloc.dart';
+import 'package:frontend/module3/auth/bloc/auth_state.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -12,91 +18,86 @@ class MyBookingsScreen extends StatefulWidget {
 class _MyBookingsScreenState extends State<MyBookingsScreen> {
   int _activeTab = 0; // 0: Active, 1: Pending, 2: History
 
-  final List<Map<String, dynamic>> _activeBookings = [
-    {
-      'id': 'BK-102',
-      'title': 'Formlabs 3B+ Printer',
-      'timeRemaining': '3 hours remaining',
-      'location': 'Bio-Medical Lab A',
-      'imageUrl': 'https://lh3.googleusercontent.com/aida-public/AB6AXuCXbm1CaktJoWupZc3uzV_7hjy6A6rLivBhlusHwMAx-3O1uzhYYoe-k0g7HYYjHGNSj8z6f76glSFmX0lq7ijioTg47EuyDYTPNsDFf33wfil94Qyia6K73wU9szaqmZzUebK1ow7fmlAlwVOAyF6_T6JPNr0j02wOs7EUhVbyGmOo1JJ8qkqe6tCxQ5ROihQR19e5D2eozzqnrKHgBpSKj7BgRpQ4ZiILxWFFDXyNWkuXOWGYaeBg',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _pendingBookings = [
-    {
-      'id': 'BK-205',
-      'title': 'Meta Quest Pro Kit',
-      'status': 'Staking Approval Pending',
-      'escrowAmount': '25.0 CHR',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _pastBookings = [
-    {
-      'id': 'BK-098',
-      'title': 'High-Perf Workstation',
-      'date': 'July 10, 2026',
-      'status': 'Returned & Verified',
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white, // Strict Visual Rule: Pure White background
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0B1326),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFFC0C1FF)),
-          onPressed: () => Navigator.maybePop(context),
-        ),
-        title: const Text(
-          'MY RESERVATIONS',
-          style: TextStyle(
-            fontFamily: 'Geist',
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFFDAE2FD),
-            letterSpacing: 1.5,
-          ),
-        ),
-        elevation: 0,
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Tab selection buttons
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: Row(
+    return BlocProvider(
+      create: (context) {
+        final authState = context.read<AuthBloc>().state;
+        final token = authState is AuthAuthenticated ? authState.token : '';
+        return BookingsBloc()..add(FetchMyBookingsEvent(token));
+      },
+      child: BlocConsumer<BookingsBloc, BookingsState>(
+        listener: (context, state) {
+          if (state is BookingCancelledSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+            );
+          } else if (state is BookingsError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            );
+          }
+        },
+        builder: (context, state) {
+          return Scaffold(
+            backgroundColor: Colors.white,
+            appBar: AppBar(
+              backgroundColor: const Color(0xFF0B1326),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Color(0xFFC0C1FF)),
+                onPressed: () => Navigator.maybePop(context),
+              ),
+              title: const Text(
+                'MY RESERVATIONS',
+                style: TextStyle(
+                  fontFamily: 'Geist',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFDAE2FD),
+                  letterSpacing: 1.5,
+                ),
+              ),
+              elevation: 0,
+            ),
+            body: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(child: _buildTabButton('Active', 0)),
-                const SizedBox(width: 8),
-                Expanded(child: _buildTabButton('Pending', 1)),
-                const SizedBox(width: 8),
-                Expanded(child: _buildTabButton('History', 2)),
+                // Tab selection buttons
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  child: Row(
+                    children: [
+                      Expanded(child: _buildTabButton('Active', 0)),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildTabButton('Pending', 1)),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildTabButton('History', 2)),
+                    ],
+                  ),
+                ),
+
+                // Tab content area
+                Expanded(
+                  child: RefreshIndicator(
+                    color: const Color(0xFF8083FF),
+                    backgroundColor: const Color(0xFF0B1326),
+                    strokeWidth: 2.5,
+                    onRefresh: () async {
+                      final authState = context.read<AuthBloc>().state;
+                      final token = authState is AuthAuthenticated ? authState.token : '';
+                      context.read<BookingsBloc>().add(FetchMyBookingsEvent(token));
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: _buildTabContent(state),
+                    ),
+                  ),
+                ),
               ],
             ),
-          ),
-
-          // Tab content area
-          Expanded(
-            child: RefreshIndicator(
-              color: const Color(0xFF8083FF),
-              backgroundColor: const Color(0xFF0B1326),
-              strokeWidth: 2.5,
-              onRefresh: () async {
-                setState(() {}); // Trigger rebuild to reload booking data
-                await Future.delayed(const Duration(milliseconds: 500));
-              },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: _buildTabContent(),
-              ),
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -133,24 +134,36 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     );
   }
 
-  Widget _buildTabContent() {
-    switch (_activeTab) {
-      case 0:
-        return _buildActiveList();
-      case 1:
-        return _buildPendingList();
-      case 2:
-        return _buildPastList();
-      default:
-        return const SizedBox.shrink();
+  Widget _buildTabContent(BookingsState state) {
+    if (state is BookingsLoading || state is BookingsInitial) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 50.0),
+        child: Center(child: CircularProgressIndicator(color: Color(0xFF8083FF))),
+      );
     }
+
+    if (state is BookingsLoaded) {
+      switch (_activeTab) {
+        case 0:
+          return _buildActiveList(state.activeBookings);
+        case 1:
+          return _buildPendingList(state.pendingBookings);
+        case 2:
+          return _buildPastList(state.historyBookings);
+        default:
+          return const SizedBox.shrink();
+      }
+    }
+    
+    return const SizedBox.shrink();
   }
 
-  Widget _buildActiveList() {
-    if (_activeBookings.isEmpty) return _buildEmptyState();
+  Widget _buildActiveList(List<dynamic> activeBookings) {
+    if (activeBookings.isEmpty) return _buildEmptyState();
 
     return Column(
-      children: _activeBookings.map((bk) {
+      children: activeBookings.map((bk) {
+        final asset = bk['asset'] ?? {};
         return Container(
           margin: const EdgeInsets.only(bottom: 20),
           decoration: BoxDecoration(
@@ -171,7 +184,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                 child: Image.network(
-                  bk['imageUrl'],
+                  asset['imageUrl'] ?? 'https://via.placeholder.com/150',
                   height: 160,
                   fit: BoxFit.cover,
                 ),
@@ -182,7 +195,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      bk['title'],
+                      asset['name'] ?? 'Unknown Item',
                       style: const TextStyle(
                         fontFamily: 'Geist',
                         fontSize: 16,
@@ -192,7 +205,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${bk['location']} • ${bk['timeRemaining']}',
+                      'ID: ${bk['id']}',
                       style: const TextStyle(
                         fontFamily: 'Geist',
                         fontSize: 13,
@@ -205,11 +218,15 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () {
-                              Navigator.push(
+                            onPressed: () async {
+                              await Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const AssetReturnScreen()),
+                                MaterialPageRoute(builder: (context) => AssetReturnScreen(bookingId: bk['id'])),
                               );
+                              if (!mounted) return;
+                              final authState = context.read<AuthBloc>().state;
+                              final token = authState is AuthAuthenticated ? authState.token : '';
+                              context.read<BookingsBloc>().add(FetchMyBookingsEvent(token));
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: const Color(0xFF8083FF),
@@ -218,10 +235,10 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child: const Text('Initiate Return', style: TextStyle(fontSize: 12)),
+                            child: const Text('Initiate Return', style: TextStyle(fontSize: 11)),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () {
@@ -238,10 +255,25 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child: const Text('Access QR Key', style: TextStyle(fontSize: 12)),
+                            child: const Text('QR Key', style: TextStyle(fontSize: 11)),
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: () {
+                          final authState = context.read<AuthBloc>().state;
+                          final token = authState is AuthAuthenticated ? authState.token : '';
+                          context.read<BookingsBloc>().add(CancelBookingEvent(bk['id'], token));
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
+                        child: const Text('Cancel Reservation', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
                     ),
                   ],
                 ),
@@ -253,11 +285,12 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     );
   }
 
-  Widget _buildPendingList() {
-    if (_pendingBookings.isEmpty) return _buildEmptyState();
+  Widget _buildPendingList(List<dynamic> pendingBookings) {
+    if (pendingBookings.isEmpty) return _buildEmptyState();
 
     return Column(
-      children: _pendingBookings.map((bk) {
+      children: pendingBookings.map((bk) {
+        final asset = bk['asset'] ?? {};
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
           padding: const EdgeInsets.all(18),
@@ -273,7 +306,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    bk['id'],
+                    'ID: ${bk['id'].toString().substring(0, 8)}...',
                     style: const TextStyle(
                       fontFamily: 'Geist',
                       fontSize: 12,
@@ -282,7 +315,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                     ),
                   ),
                   Text(
-                    bk['escrowAmount'],
+                    'Pending',
                     style: const TextStyle(
                       fontFamily: 'Geist',
                       fontSize: 13,
@@ -294,7 +327,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                bk['title'],
+                asset['name'] ?? 'Unknown Item',
                 style: const TextStyle(
                   fontFamily: 'Geist',
                   fontSize: 15,
@@ -304,16 +337,37 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
               ),
               const SizedBox(height: 6),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(Icons.hourglass_empty, size: 14, color: Color(0xFFF59E0B)),
-                  const SizedBox(width: 6),
-                  Text(
-                    bk['status'],
-                    style: const TextStyle(
-                      fontFamily: 'Geist',
-                      fontSize: 12,
-                      color: Color(0xFFF59E0B),
-                      fontWeight: FontWeight.w500,
+                  Row(
+                    children: [
+                      const Icon(Icons.hourglass_empty, size: 14, color: Color(0xFFF59E0B)),
+                      const SizedBox(width: 6),
+                      Text(
+                        bk['status'] ?? 'PENDING',
+                        style: const TextStyle(
+                          fontFamily: 'Geist',
+                          fontSize: 12,
+                          color: Color(0xFFF59E0B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  InkWell(
+                    onTap: () {
+                      final authState = context.read<AuthBloc>().state;
+                      final token = authState is AuthAuthenticated ? authState.token : '';
+                      context.read<BookingsBloc>().add(CancelBookingEvent(bk['id'], token));
+                    },
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(
+                        fontFamily: 'Geist',
+                        fontSize: 12,
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -325,11 +379,12 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     );
   }
 
-  Widget _buildPastList() {
-    if (_pastBookings.isEmpty) return _buildEmptyState();
+  Widget _buildPastList(List<dynamic> pastBookings) {
+    if (pastBookings.isEmpty) return _buildEmptyState();
 
     return Column(
-      children: _pastBookings.map((bk) {
+      children: pastBookings.map((bk) {
+        final asset = bk['asset'] ?? {};
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
           padding: const EdgeInsets.all(18),
@@ -341,31 +396,33 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    bk['title'],
-                    style: const TextStyle(
-                      fontFamily: 'Geist',
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      asset['name'] ?? 'Unknown Item',
+                      style: const TextStyle(
+                        fontFamily: 'Geist',
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F172A),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Returned on ${bk['date']}',
-                    style: const TextStyle(
-                      fontFamily: 'Geist',
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
+                    const SizedBox(height: 4),
+                    Text(
+                      'ID: ${bk['id'].toString().substring(0, 8)}...',
+                      style: const TextStyle(
+                        fontFamily: 'Geist',
+                        fontSize: 12,
+                        color: Color(0xFF64748B),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               Text(
-                bk['status'],
+                bk['status'] ?? 'COMPLETED',
                 style: const TextStyle(
                   fontFamily: 'Geist',
                   fontSize: 12,
@@ -385,7 +442,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
       height: 250,
       child: Center(
         child: Text(
-          'No reservations recorded under this index.',
+          'No reservations recorded under this tab.',
           style: TextStyle(
             fontFamily: 'Geist',
             fontSize: 14,

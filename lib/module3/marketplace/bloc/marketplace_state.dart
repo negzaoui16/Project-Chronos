@@ -22,6 +22,7 @@ class MarketplaceAsset {
   final String status; // e.g. "LIVE" or "RESERVED"
   final String availabilityText; // e.g. "Available Now" or "Returns in 2d"
   final String category; // e.g. "Hardware", "Labs", "Space"
+  final int maxReservationDays;
 
   MarketplaceAsset({
     required this.id,
@@ -31,5 +32,6 @@ class MarketplaceAsset {
     required this.status,
     required this.availabilityText,
     required this.category,
+    required this.maxReservationDays,
   });
 }

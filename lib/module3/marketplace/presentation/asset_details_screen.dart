@@ -162,7 +162,7 @@ class AssetDetailsScreen extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        isAvailable ? 'Reserve Instrument' : 'Currently Unavailable',
+                        isAvailable ? 'Reserve Instrument' : 'This item is reserved',
                         style: TextStyle(
                           fontFamily: 'Geist',
                           fontSize: 15,
