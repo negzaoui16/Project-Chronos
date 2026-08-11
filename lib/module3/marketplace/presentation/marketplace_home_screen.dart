@@ -10,6 +10,7 @@ import 'package:frontend/module3/bookings/presentation/my_bookings_screen.dart';
 import 'package:frontend/module3/chat/presentation/rag_troubleshoot_chat_screen.dart';
 import 'package:frontend/module3/auth/presentation/student_profile_screen.dart';
 import 'package:frontend/module3/auth/bloc/auth_bloc.dart';
+import 'package:frontend/module3/auth/bloc/auth_event.dart';
 import 'package:frontend/module3/auth/bloc/auth_state.dart';
 
 class MarketplaceHomeScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class MarketplaceHomeScreen extends StatefulWidget {
 }
 
 class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _selectedCategoryIndex = 0;
   final List<String> _categories = ['All Resources', 'Hardware', 'Labs', 'Space'];
 
@@ -34,7 +36,71 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Colors.white, // Strict Visual Rule: 100% Pure White background
+      drawer: Drawer(
+        backgroundColor: const Color(0xFF0B1326),
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(
+                color: Color(0xFF0B1326),
+                border: Border(bottom: BorderSide(color: Color(0x33464554))),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: const [
+                  Text(
+                    'CHRONOS',
+                    style: TextStyle(
+                      fontFamily: 'Newsreader',
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFDAE2FD),
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Resource Marketplace',
+                    style: TextStyle(
+                      fontFamily: 'Geist',
+                      fontSize: 14,
+                      color: Color(0xFFC0C1FF),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.person_outline, color: Color(0xFFC0C1FF)),
+              title: const Text('Mon Profil', style: TextStyle(color: Colors.white, fontFamily: 'Geist')),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentProfileScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.shopping_bag_outlined, color: Color(0xFFC0C1FF)),
+              title: const Text('Mes Réservations', style: TextStyle(color: Colors.white, fontFamily: 'Geist')),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const MyBookingsScreen()));
+              },
+            ),
+            const Divider(color: Color(0x33464554)),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Color(0xFFEF4444)),
+              title: const Text('Déconnexion', style: TextStyle(color: Color(0xFFEF4444), fontFamily: 'Geist')),
+              onTap: () {
+                Navigator.pop(context);
+                context.read<AuthBloc>().add(LogoutRequested());
+              },
+            ),
+          ],
+        ),
+      ),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60),
         child: Container(
@@ -57,7 +123,9 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.menu, color: Color(0xFFC0C1FF)), // primary
-                        onPressed: () {},
+                        onPressed: () {
+                          _scaffoldKey.currentState?.openDrawer();
+                        },
                       ),
                       const SizedBox(width: 8),
                       const Text(

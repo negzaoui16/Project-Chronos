@@ -148,66 +148,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white, // Strict Visual Rule: Pure White background
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
-        child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF0B1326).withValues(alpha: 0.8), // bg-hero-overlay
-            border: const Border(
-              bottom: BorderSide(
-                color: Color(0x1A464554), // border-b border-outline-variant/10
-                width: 1,
-              ),
-            ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.menu, color: Color(0xFFC0C1FF)), // primary-fixed-dim
-                        onPressed: () {},
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'CHRONOS',
-                        style: TextStyle(
-                          fontFamily: 'Newsreader',
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFFDAE2FD), // text-on-surface
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0x33464554), // border border-outline-variant/20
-                        width: 1,
-                      ),
-                      image: const DecorationImage(
-                        image: NetworkImage(
-                          'https://lh3.googleusercontent.com/aida-public/AB6AXuAoLbUVETn-NBwys4-URP3LlRMALQamK4wmLW5ycgfh2t0IqIag_7I9WwuDiVRV1vrhjNUdEJgsmS5UV8UvKi31MzLO83qKtL1VUAUu5Gny5H4dhmY_mogukDG13kInEvg6eSqQzqykYrKMznJ75PNoIfMbINMbgRxLD2A1yReZY-SaZgXy-E-BZpmxcfzCNucd9xtmXODd9rFDOx6aiXw-dXC2encXb6Mp3Y-ci0JQs2maEtNnybBo',
-                        ),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthAuthenticated) {

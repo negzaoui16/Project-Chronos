@@ -38,6 +38,8 @@ class StudentProfileScreen extends StatelessWidget {
           String studentId = '88421092';
           String reputation = '92 pts (Lvl 4)';
           String profileImageUrl = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+          String title = 'Resident Researcher • Bio-Medical Science';
+          String wallet = '0x71C...3a9f';
 
           if (state is AuthAuthenticated) {
             name = state.user['name'] ?? name;
@@ -46,6 +48,15 @@ class StudentProfileScreen extends StatelessWidget {
             final score = state.user['reputationScore'] ?? 100.0;
             reputation = '${score.toStringAsFixed(0)} pts';
             profileImageUrl = state.user['profileImageUrl'] ?? profileImageUrl;
+            title = (state.user['role'] == 'ADMIN') ? 'System Administrator' : 'Student • Verified Member';
+            
+            // Format wallet nicely if exists (e.g., 0x123...abc)
+            final String? rawWallet = state.user['walletAddress'];
+            if (rawWallet != null && rawWallet.length > 10) {
+              wallet = '${rawWallet.substring(0, 6)}...${rawWallet.substring(rawWallet.length - 4)}';
+            } else {
+              wallet = 'No Wallet Linked';
+            }
           }
 
           return RefreshIndicator(
@@ -108,10 +119,10 @@ class StudentProfileScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Resident Researcher • Bio-Medical Science',
+                Text(
+                  title,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'Geist',
                     fontSize: 13,
                     color: Color(0xFF64748B),
@@ -139,7 +150,7 @@ class StudentProfileScreen extends StatelessWidget {
                 _buildInfoTile(
                   Icons.account_balance_wallet_outlined,
                   'Linked Node Wallet',
-                  '0x71C...3a9f',
+                  wallet,
                   onTap: () {
                     Navigator.push(
                       context,
