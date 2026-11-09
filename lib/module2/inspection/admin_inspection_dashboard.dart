@@ -6,6 +6,8 @@ import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/module3/auth/bloc/auth_bloc.dart';
 import 'package:frontend/module3/auth/bloc/auth_state.dart';
 import 'package:frontend/module2/inspection/change_detection_view.dart';
+import 'package:frontend/module2/inspection/damage_severity_report.dart';
+import 'package:frontend/module2/inspection/lab_monitoring_screen.dart' as frontend_lab_monitoring;
 
 class AdminInspectionDashboard extends StatefulWidget {
   const AdminInspectionDashboard({super.key});
@@ -65,7 +67,7 @@ class _AdminInspectionDashboardState extends State<AdminInspectionDashboard> {
       setState(() {
         _isLoading = false;
       });
-      if (mounted) {
+      if (mounted && !silent) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Erreur de chargement des réservations.'), backgroundColor: Colors.redAccent),
         );
@@ -73,55 +75,7 @@ class _AdminInspectionDashboardState extends State<AdminInspectionDashboard> {
     }
   }
 
-  Future<void> _approveReturn(String bookingId) async {
-    setState(() {
-      _isSubmitting = true;
-    });
 
-    try {
-      final authState = context.read<AuthBloc>().state;
-      String token = '';
-      if (authState is AuthAuthenticated) token = authState.token;
-
-      await _apiClient.dio.post(
-        '/bookings/$bookingId/return',
-        data: {
-          "damageCategory": "OTHER_UNCLASSIFIED",
-          "damageSeverity": "COSMETIC",
-          "aiDescription": "Admin manually approved the return.",
-          "estimatedRepairCost": 0.0,
-          "recommendedAction": "NONE",
-          "status": "PASSED"
-        },
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Retour validé avec succès !'),
-            backgroundColor: Color(0xFF22C55E),
-          ),
-        );
-        _fetchActiveBookings(); // Refresh the list
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur lors de la validation du retour.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -143,6 +97,18 @@ class _AdminInspectionDashboardState extends State<AdminInspectionDashboard> {
             letterSpacing: 1.5,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.videocam_outlined, color: Color(0xFFDAE2FD)),
+            tooltip: 'Surveillance Vidéo (Agent 5)',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const frontend_lab_monitoring.LabMonitoringScreen()),
+              );
+            },
+          ),
+        ],
         elevation: 0,
       ),
       body: RefreshIndicator(
@@ -303,9 +269,38 @@ class _AdminInspectionDashboardState extends State<AdminInspectionDashboard> {
                         ),
                         const SizedBox(height: 16),
                         ElevatedButton.icon(
-                          onPressed: _isSubmitting ? null : () => _approveReturn(bookingId),
+                          onPressed: () {
+                            final inspection = booking['inspection'] ?? {};
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DamageSeverityReport(
+                                  bookingId: bookingId.toString(),
+                                  reportData: {
+                                    'severity': inspection['damageSeverity'] ?? 'UNKNOWN',
+                                    'damage_type': inspection['damageCategory'] ?? 'Unclassified',
+                                    'description': inspection['aiDescription'] ?? 'No AI description provided.',
+                                    'repair_cost_usd': inspection['estimatedRepairCost']?.toString() ?? '0',
+                                    'recommended_action': inspection['recommendedAction'] ?? 'NONE',
+                                    
+                                    'text_failure_category': inspection['failureCategory'],
+                                    'text_ai_confidence': inspection['aiConfidence'],
+                                    'text_ai_justification': inspection['aiJustification'],
+                                    'admin_report_json': inspection['adminReport'],
+
+                                    'report': {
+                                      'confidence_level': 'High',
+                                      'recommended_action': inspection['recommendedAction'] ?? 'NONE',
+                                      'cost_range': inspection['estimatedRepairCost'] != null && inspection['estimatedRepairCost'] > 0 ? '\$${inspection['estimatedRepairCost']}' : 'N/A',
+                                      'estimated_time': inspection['estimatedRepairTime'] ?? 'Unknown',
+                                    },
+                                  },
+                                ),
+                              ),
+                            );
+                          },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF22C55E),
+                            backgroundColor: const Color(0xFF0B1326),
                             foregroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -313,9 +308,9 @@ class _AdminInspectionDashboardState extends State<AdminInspectionDashboard> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          icon: const Icon(Icons.check_circle_outline, size: 18),
+                          icon: const Icon(Icons.assignment_turned_in, size: 18),
                           label: const Text(
-                            'Accepter le Retour',
+                            'Voir Rapport IA (Décision)',
                             style: TextStyle(fontFamily: 'Geist', fontWeight: FontWeight.bold, fontSize: 13),
                           ),
                         ),

@@ -93,7 +93,7 @@ class MyApp extends StatelessWidget {
           '/governance-vote': (context) => const GovernanceVoteScreen(),
           '/admin-inspection-dashboard': (context) => const AdminInspectionDashboard(),
           '/change-detection': (context) => const ChangeDetectionView(),
-          '/damage-severity-report': (context) => const DamageSeverityReport(),
+          '/damage-severity-report': (context) => const DamageSeverityReport(bookingId: '', reportData: {}),
         },
       ),
     );

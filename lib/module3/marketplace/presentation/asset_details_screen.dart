@@ -10,8 +10,13 @@ class AssetDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAvailable = asset.status == 'LIVE';
-    final statusLabel  = isAvailable ? 'Available' : 'Reserved';
-    final statusColor  = isAvailable ? const Color(0xFF22C55E) : const Color(0xFFF59E0B);
+    final isMaintenance = asset.status == 'MAINTENANCE';
+    final statusLabel = isAvailable
+        ? 'Available'
+        : (isMaintenance ? 'En Maintenance' : 'Reserved');
+    final statusColor = isAvailable
+        ? const Color(0xFF22C55E)
+        : (isMaintenance ? const Color(0xFFEF4444) : const Color(0xFFF59E0B));
 
     return Scaffold(
       backgroundColor: Colors.white,

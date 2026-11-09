@@ -7,7 +7,8 @@ class ApiEndpoints {
   //static const String baseUrl = 'http://10.0.2.2'
       //':3000'; // Émulateur Android local (par défaut)
   // static const String baseUrl = 'http://localhost:3000'; // iOS / Windows Desktop / Web
-  static const String baseUrl = 'http://172.20.10.4:3000'; // Remplacer par l'IP locale de votre PC pour test Wi-Fi réel
+  static const String baseUrl = 'http://192.168.1.7'
+      ':3000'; // Remplacer par l'IP locale de votre PC pour test Wi-Fi réel
   
   // Auth
   static const String login = '/auth/login';

@@ -178,7 +178,20 @@ class _ChangeDetectionViewState extends State<ChangeDetectionView> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const DamageSeverityReport()),
+                  MaterialPageRoute(builder: (context) => DamageSeverityReport(
+                    bookingId: '',
+                    reportData: const {
+                      'severity': 'MODERATE',
+                      'damage_type': 'cosmetic_wear',
+                      'description': 'Simulated damage report from Visual UI',
+                      'report': {
+                        'cost_range': '\$10 - \$20',
+                        'estimated_time': '1 day',
+                        'recommended_action': 'repair',
+                        'confidence_level': 'High'
+                      }
+                    }
+                  )),
                 );
               },
               child: Container(

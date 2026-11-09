@@ -273,21 +273,6 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: TextButton(
-                        onPressed: () {
-                          final authState = context.read<AuthBloc>().state;
-                          final token = authState is AuthAuthenticated ? authState.token : '';
-                          context.read<BookingsBloc>().add(CancelBookingEvent(bk['id'], token));
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.red,
-                        ),
-                        child: const Text('Cancel Reservation', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -366,22 +351,6 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                         ),
                       ),
                     ],
-                  ),
-                  InkWell(
-                    onTap: () {
-                      final authState = context.read<AuthBloc>().state;
-                      final token = authState is AuthAuthenticated ? authState.token : '';
-                      context.read<BookingsBloc>().add(CancelBookingEvent(bk['id'], token));
-                    },
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(
-                        fontFamily: 'Geist',
-                        fontSize: 12,
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
                   ),
                 ],
               ),

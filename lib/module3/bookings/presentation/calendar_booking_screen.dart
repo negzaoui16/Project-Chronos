@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/network/api_client.dart';
 import 'package:frontend/module3/auth/bloc/auth_bloc.dart';
 import 'package:frontend/module3/auth/bloc/auth_state.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:frontend/module3/bookings/presentation/booking_confirmation_screen.dart';
 
 class CalendarBookingScreen extends StatefulWidget {
@@ -25,6 +27,60 @@ class _CalendarBookingScreenState extends State<CalendarBookingScreen> {
   bool _isFetchingAsset = true;
   bool _isLoading = false;
   final ApiClient _apiClient = ApiClient();
+  
+  File? _frontPhoto;
+  File? _backPhoto;
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickPhoto(bool isFront) async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Galerie'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _getImage(ImageSource.gallery, isFront);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Caméra'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _getImage(ImageSource.camera, isFront);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _getImage(ImageSource source, bool isFront) async {
+    try {
+      final XFile? image = await _picker.pickImage(source: source);
+      if (image != null) {
+        setState(() {
+          if (isFront) {
+            _frontPhoto = File(image.path);
+          } else {
+            _backPhoto = File(image.path);
+          }
+        });
+      }
+    } catch (e) {
+      // Ignored if camera fails
+    }
+  }
 
   @override
   void initState() {
@@ -96,13 +152,24 @@ class _CalendarBookingScreenState extends State<CalendarBookingScreen> {
         token = authState.token;
       }
 
+      final Map<String, dynamic> mapData = {
+        'assetId': widget.assetId,
+        'startTime': startTime.toIso8601String(),
+        'endTime': endTime.toIso8601String(),
+      };
+
+      if (_frontPhoto != null) {
+        mapData['frontPhoto'] = await MultipartFile.fromFile(_frontPhoto!.path);
+      }
+      if (_backPhoto != null) {
+        mapData['backPhoto'] = await MultipartFile.fromFile(_backPhoto!.path);
+      }
+
+      final formData = FormData.fromMap(mapData);
+
       final response = await _apiClient.dio.post(
         '/bookings',
-        data: {
-          'assetId': widget.assetId,
-          'startTime': startTime.toIso8601String(),
-          'endTime': endTime.toIso8601String(),
-        },
+        data: formData,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
@@ -265,11 +332,72 @@ class _CalendarBookingScreenState extends State<CalendarBookingScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 36),
+
+              const Text('BASELINE ASSET PHOTOS', style: TextStyle(fontFamily: 'Geist', fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _pickPhoto(true),
+                      child: Container(
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          image: _frontPhoto != null
+                              ? DecorationImage(image: FileImage(_frontPhoto!), fit: BoxFit.cover)
+                              : null,
+                        ),
+                        child: _frontPhoto == null
+                            ? Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.camera_alt, color: Color(0xFF8083FF), size: 28),
+                                  SizedBox(height: 8),
+                                  Text('Face (De devant)', style: TextStyle(color: Color(0xFF64748B), fontFamily: 'Geist', fontSize: 11, fontWeight: FontWeight.bold)),
+                                ],
+                              )
+                            : null,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _pickPhoto(false),
+                      child: Container(
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          image: _backPhoto != null
+                              ? DecorationImage(image: FileImage(_backPhoto!), fit: BoxFit.cover)
+                              : null,
+                        ),
+                        child: _backPhoto == null
+                            ? Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.camera_alt, color: Color(0xFF8083FF), size: 28),
+                                  SizedBox(height: 8),
+                                  Text('Dos (De derrière)', style: TextStyle(color: Color(0xFF64748B), fontFamily: 'Geist', fontSize: 11, fontWeight: FontWeight.bold)),
+                                ],
+                              )
+                            : null,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 48),
 
             // Next button
             ElevatedButton(
-              onPressed: (_startDate != null && _startTime != null && _endDate != null && _endTime != null && !_isLoading && !_isFetchingAsset) ? _submitBooking : null,
+              onPressed: (_startDate != null && _startTime != null && _endDate != null && _endTime != null && _frontPhoto != null && _backPhoto != null && !_isLoading && !_isFetchingAsset) ? _submitBooking : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF8083FF),
                 foregroundColor: const Color(0xFF0D0096),

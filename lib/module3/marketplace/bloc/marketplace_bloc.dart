@@ -19,8 +19,16 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
         final assets = data.map((json) {
           // Map AssetStatus from backend to display labels
           final status = json['status'] as String? ?? 'AVAILABLE';
-          final displayStatus = status == 'AVAILABLE' ? 'LIVE' : 'RESERVED';
-          final availText = status == 'AVAILABLE' ? 'Available Now' : 'Currently Reserved';
+          String displayStatus = 'RESERVED';
+          String availText = 'Currently Reserved';
+
+          if (status == 'AVAILABLE') {
+            displayStatus = 'LIVE';
+            availText = 'Available Now';
+          } else if (status == 'UNDER_INSPECTION' || status == 'MAINTENANCE') {
+            displayStatus = 'MAINTENANCE';
+            availText = 'En Maintenance (Endommagé)';
+          }
 
           return MarketplaceAsset(
             id: json['id'] ?? '',
