@@ -1,0 +1,181 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+enum TokenMintStatus {
+  NOT_REQUIRED
+  PENDING
+  SUBMITTED
+  CONFIRMED
+  FAILED
+}
+
+enum AssetStatus {
+  AVAILABLE
+  RESERVED
+  UNDER_INSPECTION
+  MAINTENANCE
+}
+
+enum BookingStatus {
+  PENDING
+  ACTIVE
+  PENDING_RETURN
+  COMPLETED
+  CANCELLED
+}
+
+enum DamageCategory {
+  SCREEN_DISPLAY
+  STRUCTURAL_BODY
+  PORT_CONNECTOR
+  MISSING_COMPONENT
+  LIQUID_MOISTURE
+  INPUT_CONTROL
+  POWER_BOOT_FAILURE
+  COSMETIC_WEAR
+  OTHER_UNCLASSIFIED
+}
+
+enum DamageSeverity {
+  COSMETIC
+  MODERATE
+  SEVERE
+  CRITICAL
+}
+
+enum RecommendedAction {
+  REPAIR
+  REPLACE
+  WRITE_OFF
+  NONE
+}
+
+enum InspectionStatus {
+  PASSED
+  FLAGGED
+}
+
+model User {
+  id                       String          @id @default(auto()) @map("_id") @db.ObjectId
+  email                    String          @unique
+  password                 String
+  name                     String
+  studentId                String          @unique
+  role                     Role            @default(STUDENT)
+  reputationScore          Float           @default(100.0)
+  profileImageUrl          String?
+  resetCode                String?
+  resetCodeExpires         DateTime?
+  walletAddress            String?
+  encryptedPrivateKey      String?
+  tokenMintStatus          TokenMintStatus @default(NOT_REQUIRED)
+  tokenMintTransactionHash String?
+  tokenMintBlockNumber     Int?
+  tokenMintError           String?
+  tokenMintedAt            DateTime?
+  bookings                 Booking[]
+}
+
+enum PhotoType {
+  PICKUP
+  RETURN
+}
+
+model Asset {
+  id                 String      @id @default(auto()) @map("_id") @db.ObjectId
+  name               String
+  description        String?
+  category           String
+  imageUrl           String
+  status             AssetStatus @default(AVAILABLE)
+  createdAt          DateTime    @default(now())
+  maxReservationDays Int         @default(3)
+  bookings           Booking[]
+}
+
+model Booking {
+  id                  String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId              String        @db.ObjectId
+  assetId             String        @db.ObjectId
+  startTime           DateTime
+  endTime             DateTime
+  status              BookingStatus @default(PENDING)
+  escrowTxHash        String?
+  escrowReservationId String?
+  escrowSettleTxHash  String?
+  escrowDepositAmount String?
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset               Asset         @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  inspection          Inspection?
+  photos              Photo[] // Multi-angle Cloudinary photos (PICKUP and RETURN)
+  chatMessages        ChatMessage[]
+}
+
+model Photo {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  url       String // Cloudinary secure URL
+  type      PhotoType // PICKUP (before) or RETURN (after)
+  angle     String? // ex: "front", "back", "left", "right"
+  bookingId String    @db.ObjectId
+  booking   Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+}
+
+model Inspection {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  bookingId String @unique @db.ObjectId
+
+  // Agent 1 & 2 outputs
+  changeScore      Float?
+  boundingBox      String? // Bounding region of changed area
+  croppedDamageUrl String? // Cloudinary URL of the cropped area
+  damageCategory   DamageCategory
+  damageSeverity   DamageSeverity
+  aiDescription    String // Visual LLM analysis text
+
+  // Agent 3 outputs
+  failureCategory String?
+  aiConfidence    Float?
+  aiJustification String?
+
+  // Agent 4 outputs
+  estimatedRepairCost Float
+  estimatedRepairTime String?
+  recommendedAction   RecommendedAction
+  adminReport         String?
+
+  status  InspectionStatus @default(PASSED)
+  booking Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model ChatMessage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionId String
+  bookingId String?  @db.ObjectId
+  text      String
+  isUser    Boolean
+  imageUrl  String?
+  createdAt DateTime @default(now())
+
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model TroubleshootingGuide {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  content   String
+  embedding Json?
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,91 @@
+# Compiled output
+/dist
+/node_modules
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Tests and Coverage
+/coverage
+/.cache
+
+# IDEs and Editors
+/.idea
+/.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Nest CLI configuration cache
+.nestcli.json
+
+# Environment Variables
+.env
+.env.local
+.env.development
+.env.test
+.env.staging
+.env.production
+
+# Prisma Migrations & Local Databases
+/prisma/migrations
+/prisma/dev.db
+/prisma/dev.db-journal
+
+# AI Models & Weights (>100MB)
+models/
+*.gguf
+*.bin
+*.pt
+*.pth
+*.onnx
+
+# Temporary archives & teammate dumps
+*.rar
+*.zip
+*.tar
+*.tar.gz
+Agent_Tasnim/
+tasnim/
+
+# Internal scratch tests and mock databases
+scratch/
+
+# User uploads & media
+uploads/
+inspection/
+videos/
+
+# Setup scripts
+git_setup.sh
+
+# Root temporary test & benchmark scripts
+test_*.js
+test_*.json
+test-*.mjs
+test_*.jpg
+test_*.png
+purge_*.js
+inspect_*.js
+cancel*.js
+seed_*.js
+check_*.js
+fetch_*.js
+fund_*.js
+inject_*.js
+show_output.js
+run_full_benchmark.js
+preview_scraped.txt
+*.patch
+fix-hf*.py
